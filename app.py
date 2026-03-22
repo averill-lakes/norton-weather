@@ -8,7 +8,7 @@ from flask_cors import CORS
 import requests
 import os
 
-app = Flask(__name__, static_folder="static", static_url_path="")
+app = Flask(__name__)
 CORS(app)
 
 LAT = 44.9897
@@ -32,15 +32,12 @@ def ms_to_mph(ms):
 @app.route("/api/weather")
 def weather():
     try:
-        # Resolve grid
         pts = noaa(f"{NOAA}/points/{LAT},{LON}")["properties"]
         gid, gx, gy = pts["gridId"], pts["gridX"], pts["gridY"]
 
-        # Get nearest station
         stations = noaa(f"{NOAA}/gridpoints/{gid}/{gx},{gy}/stations")
         station_id = stations["features"][0]["properties"]["stationIdentifier"]
 
-        # Fetch everything
         obs    = noaa(f"{NOAA}/stations/{station_id}/observations/latest")["properties"]
         hourly = noaa(pts["forecastHourly"])["properties"]["periods"][:24]
         daily  = noaa(pts["forecast"])["properties"]["periods"]
@@ -81,7 +78,7 @@ def weather():
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory(".", "index.html")
 
 
 if __name__ == "__main__":
