@@ -145,7 +145,7 @@ def historical():
             if date not in daily_map:
                 daily_map[date] = {"date": date, "prcp_in": None, "tmax_f": None,
                                    "tmin_f": None, "snow_in": None, "snow_depth_in": None}
-            if   dtype == "PRCP": daily_map[date]["prcp_in"]       = round(val / 10, 2)
+            if   dtype == "PRCP": daily_map[date]["prcp_in"]       = round(val / 100, 2)
             elif dtype == "TMAX": daily_map[date]["tmax_f"]        = round(val / 10, 1)
             elif dtype == "TMIN": daily_map[date]["tmin_f"]        = round(val / 10, 1)
             elif dtype == "SNOW": daily_map[date]["snow_in"]       = round(val / 10, 1)
