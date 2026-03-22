@@ -20,7 +20,7 @@ NOAA_HEADERS = {"User-Agent": "NortonVTWeatherAgent/1.0 (weather-agent@example.c
 
 # NOAA CDO - Newport VT / Island Pond area stations
 CDO_BASE    = "https://www.ncei.noaa.gov/cdo-web/api/v2"
-CDO_STATION = "GHCND:USW00014742"  # Newport State Airport, VT
+CDO_STATION = "GHCND:USC00430193"  # Lake View Store, Norton VT
 CDO_TOKEN   = os.environ.get("CDO_TOKEN", "")
 
 
