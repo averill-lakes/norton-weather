@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Norton VT Weather</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #030712; color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; padding: 16px; }
+    .container { max-width: 600px; margin: 0 auto; }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .header h1 { font-size: 1.25rem; font-weight: 700; }
+    .subtitle { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+    .refresh-btn { background: #1d4ed8; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+    .refresh-btn:hover { background: #2563eb; }
+    .refresh-btn:disabled { background: #374151; cursor: default; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: #111827; padding: 4px; border-radius: 10px; margin-bottom: 16px; }
+    .tab { flex: 1; padding: 6px 4px; border: none; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer; background: transparent; color: #94a3b8; text-transform: capitalize; }
+    .tab.active { background: #1d4ed8; color: white; }
+
+    /* Current card */
+    .current-card { background: linear-gradient(135deg, #1e3a5f, #1e293b); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .current-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .current-label { font-size: 0.65rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+    .current-name { font-size: 1.1rem; font-weight: 700; margin: 2px 0; }
+    .current-station { font-size: 0.65rem; color: #64748b; }
+    .current-temp { font-size: 3rem; font-weight: 200; line-height: 1; }
+    .current-tempc { font-size: 0.8rem; color: #94a3b8; text-align: right; }
+    .current-desc { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 14px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-box { background: rgba(255,255,255,0.08); border-radius: 10px; padding: 8px; text-align: center; }
+    .stat-label { font-size: 0.6rem; color: #94a3b8; }
+    .stat-value { font-size: 0.8rem; font-weight: 600; margin-top: 2px; }
+
+    /* Hourly */
+    .section-title { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .card { background: #1f2937; border-radius: 16px; padding: 16px; }
+    .hourly-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.8rem; }
+    .hourly-row:last-child { border-bottom: none; }
+    .h-time { color: #64748b; width: 52px; font-size: 0.7rem; }
+    .h-temp { font-weight: 600; width: 48px; }
+    .h-desc { flex: 1; color: #cbd5e1; font-size: 0.7rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 8px; }
+    .h-wind { color: #93c5fd; font-size: 0.7rem; text-align: right; width: 72px; }
+
+    /* Daily */
+    .daily-card { border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+    .daily-day { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.25); }
+    .daily-night { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25); }
+    .daily-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .daily-name { font-weight: 600; font-size: 0.85rem; }
+    .daily-temp { font-weight: 700; }
+    .daily-detail { font-size: 0.7rem; color: #94a3b8; }
+    .daily-wind { font-size: 0.65rem; color: #64748b; margin-top: 4px; }
+
+    /* Alerts */
+    .alert-card { background: rgba(127,29,29,0.4); border: 1px solid #dc2626; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .alert-event { color: #fca5a5; font-weight: 700; font-size: 0.85rem; }
+    .alert-desc { color: #fecaca; font-size: 0.75rem; margin-top: 6px; line-height: 1.5; }
+    .alert-expires { color: #94a3b8; font-size: 0.65rem; margin-top: 6px; }
+    .no-alerts { background: rgba(6,78,59,0.3); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 20px; color: #6ee7b7; font-size: 0.85rem; }
+
+    /* Meta */
+    .meta-card { background: #1f2937; border-radius: 16px; padding: 16px; font-family: monospace; font-size: 0.75rem; color: #94a3b8; line-height: 2; }
+    .meta-card div { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 2px 0; }
+    .meta-card div:last-child { border-bottom: none; color: #4b5563; }
+
+    /* Loading / Error */
+    .skeleton { background: #1f2937; border-radius: 16px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .error-box { background: rgba(127,29,29,0.5); border: 1px solid #b91c1c; border-radius: 12px; padding: 16px; }
+    .error-title { color: #f87171; font-weight: 700; margin-bottom: 6px; }
+    .error-msg { color: #fca5a5; font-size: 0.8rem; font-family: monospace; }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>🌤 Norton, VT</h1>
+      <div class="subtitle" id="subtitle">Press Refresh to load</div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="load()">↻ Refresh</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs" style="display:none">
+    <button class="tab active" onclick="setTab('current')">Current</button>
+    <button class="tab" onclick="setTab('hourly')">Hourly</button>
+    <button class="tab" onclick="setTab('daily')">Daily</button>
+    <button class="tab" id="alertsTab" onclick="setTab('alerts')">Alerts</button>
+    <button class="tab" onclick="setTab('meta')">Meta</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" class="hidden">
+    <div class="skeleton" style="height:200px;margin-bottom:10px"></div>
+    <div class="skeleton" style="height:40px;width:70%;margin-bottom:8px"></div>
+    <div class="skeleton" style="height:40px;width:50%"></div>
+  </div>
+
+  <!-- Error -->
+  <div id="errorBox" class="error-box hidden">
+    <div class="error-title">⚠ Error</div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <!-- Content panels -->
+  <div id="panelCurrent" class="hidden"></div>
+  <div id="panelHourly" class="hidden"></div>
+  <div id="panelDaily" class="hidden"></div>
+  <div id="panelAlerts" class="hidden"></div>
+  <div id="panelMeta" class="hidden"></div>
+</div>
+
+<script>
+  let currentTab = 'current';
+  let weatherData = null;
+
+  function windDir(deg) {
+    if (deg == null) return '—';
+    const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    return dirs[Math.round(deg / 22.5) % 16];
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function setTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const names = ['current','hourly','daily','alerts','meta'];
+      t.classList.toggle('active', names[i] === tab);
+    });
+    ['current','hourly','daily','alerts','meta'].forEach(p => {
+      document.getElementById('panel' + p.charAt(0).toUpperCase() + p.slice(1)).classList.toggle('hidden', p !== tab);
+    });
+  }
+
+  function renderCurrent(d) {
+    const c = d.current;
+    return `
+      <div class="current-card">
+        <div class="current-top">
+          <div>
+            <div class="current-label">Current Conditions</div>
+            <div class="current-name">Norton, VT</div>
+            <div class="current-station">Station: ${c.station} · ${fmtTime(c.timestamp)}</div>
+          </div>
+          <div>
+            <div class="current-temp">${c.temperature_f ?? '—'}°</div>
+            <div class="current-tempc">${c.temperature_c ?? '—'}°C</div>
+          </div>
+        </div>
+        <div class="current-desc">${c.textDescription || '—'}</div>
+        <div class="grid3">
+          ${[
+            ['Humidity', c.humidity_pct != null ? c.humidity_pct + '%' : '—'],
+            ['Dewpoint', c.dewpoint_f != null ? c.dewpoint_f + '°F' : '—'],
+            ['Wind', c.windSpeed_mph != null ? windDir(c.windDirection_deg) + ' ' + c.windSpeed_mph + ' mph' : '—'],
+            ['Gusts', c.windGust_mph != null ? c.windGust_mph + ' mph' : '—'],
+            ['Visibility', c.visibility_km != null ? c.visibility_km + ' km' : '—'],
+            ['Pressure', c.pressure_hpa != null ? c.pressure_hpa + ' hPa' : '—'],
+          ].map(([l,v]) => `<div class="stat-box"><div class="stat-label">${l}</div><div class="stat-value">${v}</div></div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  function renderHourly(d) {
+    return `<div class="section-title">Next 24 Hours</div>
+    <div class="card">
+      ${d.hourly.map(p => `
+        <div class="hourly-row">
+          <div class="h-time">${fmtTime(p.startTime)}</div>
+          <div class="h-temp">${p.temperature}°${p.temperatureUnit}</div>
+          <div class="h-desc">${p.shortForecast}</div>
+          <div class="h-wind">${p.windSpeed} ${p.windDirection}</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  function renderDaily(d) {
+    return `<div class="section-title">7-Day Forecast</div>
+    ${d.daily.map(p => `
+      <div class="daily-card ${p.isDaytime ? 'daily-day' : 'daily-night'}">
+        <div class="daily-top">
+          <div class="daily-name">${p.name}</div>
+          <div class="daily-temp">${p.temperature}°${p.temperatureUnit}</div>
+        </div>
+        <div class="daily-detail">${p.detailedForecast}</div>
+        <div class="daily-wind">Wind: ${p.windSpeed} ${p.windDirection}</div>
+      </div>`).join('')}`;
+  }
+
+  function renderAlerts(d) {
+    if (!d.alerts || d.alerts.length === 0) {
+      return `<div class="no-alerts">✓ No active weather alerts for Norton, VT.</div>`;
+    }
+    return d.alerts.map(a => `
+      <div class="alert-card">
+        <div class="alert-event">⚠ ${a.event}</div>
+        <div class="alert-desc">${a.description || a.headline || ''}</div>
+        <div class="alert-expires">Expires: ${a.expires ? new Date(a.expires).toLocaleString() : '—'}</div>
+      </div>`).join('');
+  }
+
+  function renderMeta(d) {
+    return `<div class="meta-card">
+      <div>Grid: ${d.meta.gridId} ${d.meta.gridX},${d.meta.gridY}</div>
+      <div>Station: ${d.meta.station}</div>
+      <div>Coords: 44.9897°N, 71.7978°W</div>
+      <div>Source: api.weather.gov (NOAA/NWS)</div>
+    </div>`;
+  }
+
+  async function load() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    document.getElementById('subtitle').textContent = 'Fetching live NOAA data…';
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('errorBox').classList.add('hidden');
+    document.getElementById('tabs').style.display = 'none';
+    ['current','hourly','daily','alerts','meta'].forEach(p =>
+      document.getElementById('panel' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('hidden'));
+
+    try {
+      const res = await fetch('/api/weather');
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      weatherData = data;
+
+      document.getElementById('panelCurrent').innerHTML = renderCurrent(data);
+      document.getElementById('panelHourly').innerHTML = renderHourly(data);
+      document.getElementById('panelDaily').innerHTML = renderDaily(data);
+      document.getElementById('panelAlerts').innerHTML = renderAlerts(data);
+      document.getElementById('panelMeta').innerHTML = renderMeta(data);
+
+      const alertCount = data.alerts?.length || 0;
+      document.getElementById('alertsTab').textContent = alertCount > 0 ? `⚠ Alerts (${alertCount})` : 'Alerts';
+
+      document.getElementById('tabs').style.display = 'flex';
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('subtitle').textContent = 'Updated ' + new Date().toLocaleTimeString();
+      setTab(currentTab);
+
+    } catch (e) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('errorBox').classList.remove('hidden');
+      document.getElementById('errorMsg').textContent = e.message;
+      document.getElementById('subtitle').textContent = 'Failed to load';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '↻ Refresh';
+  }
+
+  // Auto-load on open
+  load();
+</script>
+</body>
+</html>
